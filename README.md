@@ -1,5 +1,7 @@
 # ApSpace Discord Bot
 
+![ApSpace logo](./public/apspace-black.svg)
+
 Stay up to date with your APU auto-scheduled timetable right in your Discord server! This bot helps you track your class schedule, find empty rooms, and automatically shares updates with your family or friends.
 
 ## 📚 Table of Contents
