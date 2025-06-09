@@ -17,10 +17,14 @@ Stay up to date with your APU auto-scheduled timetable right in your Discord ser
 - **🔄 Personal Timetable Management**
   - Remember your intake code and tutorial group for quick access
   - View timetable by date, weekday, or module code
+  - Multiple display formats for weekly schedule (time-only, with location, with module details)
+  - 12-hour or 24-hour time format options
+  - Smart pagination for multi-week schedules
   - Automatic weekly and daily timetable updates
   - Smart filtering based on tutorial groups
   - Personalized DM notifications for your schedule
   - Clear distinction between online and physical classes
+  - Week-based grouping with easy navigation
 
 - **📬 Smart Notifications**
   - Choose between server-wide announcements and personal DMs
@@ -53,10 +57,17 @@ So why not build something that could ***make my life easier once and for all?**
   - Node.js ≥ v20.x
 
 - **Core Libraries**
-  - Discord.js - Discord bot framework
-  - Prisma ORM - Database management
+  - Discord.js - Discord bot framework with slash commands support
+  - Prisma ORM - Database management with migrations
   - PostgreSQL - Database system
-  - Axios - API communication
+  - Axios - API communication with caching support
+
+- **Architecture**
+  - Modular command structure
+  - Shared utility functions
+  - Efficient data caching
+  - Smart rate limiting
+  - Automatic error handling
 
 - **Development Tools**
   - dotenv - Environment configuration
@@ -105,9 +116,10 @@ So why not build something that could ***make my life easier once and for all?**
 ### Basic Commands
 
 - `/setintake <intake_code> <tutorial_group> [dm_notifications]` - Set your intake code, tutorial group, and DM preferences
-- `/timetable` - View timetable information
-  - `/timetable today [intake_code] [tutorial_group] [sort_by]` - Get today's timetable
-  - `/timetable weekly [intake_code] [tutorial_group] [sort_by]` - Get weekly timetable
+- `/timetable` - View timetable information  - `/timetable today [intake_code] [tutorial_group] [sort_by]` - Get today's timetable
+  - `/timetable weekly <display_format> [time_format] [intake_code] [tutorial_group]` - Get weekly timetable
+    - `display_format`: Time Only, Time + Location, Time + Module Code + Location, Time + Module Name + Location
+    - `time_format`: 12-hour or 24-hour time format
   - `/timetable daily <weekday> [intake_code] [tutorial_group] [sort_by]` - Get timetable for a specific weekday
   - `/timetable date <date> [intake_code] [tutorial_group] [sort_by]` - Get timetable for a specific date
   - `/timetable empty-rooms [start_time] [end_time] [date]` - Find empty rooms
@@ -125,11 +137,18 @@ The bot automatically sends:
 - Immediate updates for schedule changes
 
 #### Notification Features
-- Server-wide announcements in designated channels
+- Server-wide announcements in designated channels (Requires ModerateMembers permission)
 - Personal DM notifications (opt-in)
 - Rate-limited message delivery to prevent Discord throttling
-- Clear distinction between online and physical classes
+- Clear distinction between online (💻) and physical (📍) classes
 - Tutorial group specific filtering
+- Smart pagination for multi-week schedules
+- Customizable display formats:
+  - Time Only
+  - Time + Location
+  - Time + Module Code + Location
+  - Time + Module Name + Location
+- Flexible time format (12-hour or 24-hour)
 
 ## 💝 Support
 
