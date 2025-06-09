@@ -14,34 +14,38 @@ const isPhysicalLocation = (room) => {
  * @param {import('discord.js').Client} bot - The Discord.js client instance
  */
 function initializeCronJobs(bot) {
-  // Update timetable every day at 00:00
-  cron.schedule('0 0 * * *', async () => {
-    console.log('Running scheduled timetable update...');
+  // Update timetable cache on Friday, Saturday, and Sunday at 00:00
+  cron.schedule("0 0 * * 5-7", async () => {
+    console.log("Running scheduled timetable cache update (weekend)...");
     try {
       await timetable.fetchAndCacheTimetable();
-      console.log('Timetable updated successfully');
-      await sendTimetableUpdates(bot);
+      console.log("Timetable cache updated successfully");
     } catch (error) {
-      console.error('Error updating timetable:', error);
-    }
-  });
-  // Send daily updates at 06:00 AM (Monday-Friday)
-  cron.schedule('0 6 * * 1-5', async () => {
-    console.log('Sending daily timetable updates...');
-    try {
-      await sendTimetableUpdates(bot);
-    } catch (error) {
-      console.error('Error sending timetable updates:', error);
+      console.error("Error updating timetable cache:", error);
     }
   });
 
-  // Send weekly schedule on Sunday at 08:00 PM
-  cron.schedule('0 20 * * 0', async () => {
-    console.log('Sending weekly timetable updates...');
+  // Send daily updates at 12:00 AM (Monday-Friday)
+  cron.schedule("0 0 * * 1-5", async () => {
+    console.log("Sending daily timetable updates...");
     try {
+      await sendTimetableUpdates(bot);
+    } catch (error) {
+      console.error("Error sending timetable updates:", error);
+    }
+  });
+
+  // Update cache and send weekly schedule on Sunday at 08:00 PM
+  cron.schedule("0 20 * * 0", async () => {
+    console.log("Updating cache before sending weekly updates...");
+    try {
+      await timetable.fetchAndCacheTimetable();
+      console.log(
+        "Cache updated successfully, sending weekly timetable updates..."
+      );
       await sendWeeklyTimetableUpdates(bot);
     } catch (error) {
-      console.error('Error sending weekly timetable updates:', error);
+      console.error("Error sending weekly timetable updates:", error);
     }
   });
 }
