@@ -4,7 +4,10 @@ const { prisma } = require("../database");
 const command = new SlashCommandBuilder()
   .setName("schedule")
   .setDescription("Configure timetable update settings")
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // Make command admin-only
+  .setDefaultMemberPermissions(
+    PermissionFlagsBits.Administrator,
+    PermissionFlagsBits.ModerateMembers
+  ) // Make command admin-only
   .addSubcommand((subcommand) =>
     subcommand
       .setName("channel")
