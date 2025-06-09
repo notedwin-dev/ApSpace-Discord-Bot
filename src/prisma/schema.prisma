@@ -32,9 +32,10 @@ model ServerUser {
 }
 
 model Server {
-  id             String   @id @default(cuid())
-  serverId       String   @unique
-  webhookChannel String?
+  id              String    @id @default(cuid())
+  serverId        String    @unique
+  webhookChannel  String?   // For server-wide announcements
+  defaultIntake   String?   // Server-wide default intake code
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
