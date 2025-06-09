@@ -3,14 +3,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
- * Fetches timetable data from the APU's web API and stores it in the database.
- * We should update the cached result every 24 hours.
- * @link https://s3-ap-southeast-1.amazonaws.com/open-ws/weektimetable
- * @return {Promise<Object>} - A promise that resolves to the timetable data.
- * @throws {Error} - If the fetch operation fails or the response is not valid.
- */
-
-/**
  * Insert class schedules in chunks to avoid transaction timeout
  * @param {Array} classes - Array of class schedules to insert
  * @param {number} chunkSize - Size of each chunk
@@ -44,6 +36,13 @@ async function insertClassSchedulesInChunks(classes, chunkSize = 500, timetableI
   }
 }
 
+/**
+ * Fetches timetable data from the APU's web API and stores it in the database.
+ * We should update the cached result every 24 hours.
+ * @link https://s3-ap-southeast-1.amazonaws.com/open-ws/weektimetable
+ * @return {Promise<Object>} - A promise that resolves to the timetable data.
+ * @throws {Error} - If the fetch operation fails or the response is not valid.
+ */
 async function fetchAndCacheTimetable() {
   try {
     const response = await axios.get('https://s3-ap-southeast-1.amazonaws.com/open-ws/weektimetable');
