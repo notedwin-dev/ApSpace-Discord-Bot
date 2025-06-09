@@ -9,13 +9,14 @@ generator client {
 }
 
 model User {
-  id         String       @id @default(cuid())
-  userId     String       @unique
-  intakeCode String?
-  grouping   String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  servers    ServerUser[]
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  intakeCode      String?
+  grouping        String?
+  dmNotifications Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  servers         ServerUser[]
 }
 
 model ServerUser {
@@ -32,10 +33,10 @@ model ServerUser {
 }
 
 model Server {
-  id              String    @id @default(cuid())
-  serverId        String    @unique
-  webhookChannel  String?   // For server-wide announcements
-  defaultIntake   String?   // Server-wide default intake code
+  id             String   @id @default(cuid())
+  serverId       String   @unique
+  webhookChannel String? // For server-wide announcements
+  defaultIntake  String? // Server-wide default intake code
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -43,24 +44,24 @@ model Server {
 }
 
 model Timetable {
-  id         String           @id @default(cuid())
+  id         String          @id @default(cuid())
   fetchedAt  DateTime        @default(now())
   validUntil DateTime
   classes    ClassSchedule[]
 }
 
 model ClassSchedule {
-  id           String    @id @default(cuid())
-  intakeCode   String
-  moduleCode   String
-  moduleName   String
-  roomNumber   String
-  grouping     String
-  startTime    DateTime
-  endTime      DateTime
-  day          String
-  timetableId  String
-  timetable    Timetable @relation(fields: [timetableId], references: [id])
+  id          String    @id @default(cuid())
+  intakeCode  String
+  moduleCode  String
+  moduleName  String
+  roomNumber  String
+  grouping    String
+  startTime   DateTime
+  endTime     DateTime
+  day         String
+  timetableId String
+  timetable   Timetable @relation(fields: [timetableId], references: [id])
 
   @@index([intakeCode])
   @@index([moduleCode])
