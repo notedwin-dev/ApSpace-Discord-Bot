@@ -158,58 +158,146 @@ async function sendTimetableUpdates(bot) {
  */
 async function sendWeeklyTimetableUpdates(bot) {
   try {
-    // Get all servers with webhook channels configured
     const servers = await prisma.server.findMany({
-      where: {
-        webhookChannel: {
-          not: null
-        }
-      },
       include: {
         user: {
           include: {
-            user: true
-          }
-        }
-      }
+            user: true,
+          },
+        },
+      },
     });
 
     for (const server of servers) {
-      const channel = bot.channels.cache.get(server.webhookChannel);
-      if (!channel) continue;
+      const guild = bot.guilds.cache.get(server.id);
+      if (!guild) continue;
 
-      // Send updates for each user in the server
+      // Handle server-wide announcements
+      if (server.webhookChannel && server.defaultIntake) {
+        const channel = bot.channels.cache.get(server.webhookChannel);
+        if (channel) {
+          const today = new Date();
+          const nextMonday = new Date(today);
+          nextMonday.setDate(today.getDate() + (8 - today.getDay())); // Next Monday
+          nextMonday.setHours(0, 0, 0, 0);
+
+          const nextFriday = new Date(nextMonday);
+          nextFriday.setDate(nextMonday.getDate() + 4); // Friday is 4 days after Monday
+          nextFriday.setHours(23, 59, 59, 999);
+
+          const classes = await timetable.getWeeklyByIntake(
+            server.defaultIntake,
+            nextMonday,
+            nextFriday
+          );
+
+          if (classes.length > 0) {
+            const embed = new EmbedBuilder()
+              .setColor(0x0099ff)
+              .setTitle(
+                `📅 Next Week's Classes (${nextMonday.toLocaleDateString()} - ${nextFriday.toLocaleDateString()})`
+              )
+              .setDescription(
+                `Server-wide timetable for intake: ${server.defaultIntake}`
+              );
+
+            // Sort and group classes by day and tutorial group
+            const dayGroups = {};
+            classes.forEach((cls) => {
+              const day = cls.startTime.toLocaleDateString("en-US", {
+                weekday: "long",
+              });
+              if (!dayGroups[day]) {
+                dayGroups[day] = {};
+              }
+              if (!dayGroups[day][cls.grouping]) {
+                dayGroups[day][cls.grouping] = [];
+              }
+              dayGroups[day][cls.grouping].push(cls);
+            });
+
+            // Add fields for each day and group
+            for (const [day, groups] of Object.entries(dayGroups)) {
+              for (const [group, groupClasses] of Object.entries(groups)) {
+                groupClasses.sort((a, b) => a.startTime - b.startTime);
+                let value = groupClasses
+                  .map((cls) => {
+                    const startTime = cls.startTime.toLocaleTimeString(
+                      "en-US",
+                      { hour: "2-digit", minute: "2-digit" }
+                    );
+                    const endTime = cls.endTime.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    return `${cls.moduleCode} - ${
+                      cls.moduleName
+                    }\n🕒 ${startTime} - ${endTime}\n${
+                      isPhysicalLocation(cls.roomNumber)
+                        ? `🏫 Room ${cls.roomNumber}`
+                        : "💻 Online Class"
+                    }`;
+                  })
+                  .join("\n\n");
+
+                embed.addFields({
+                  name: `📆 ${day} (Group ${group || "Common"})`,
+                  value: value || "No classes",
+                });
+              }
+            }
+
+            await channel.send({ embeds: [embed] });
+          }
+        }
+      }
+
+      // Handle personal timetables via DM
       for (const serverUser of server.user) {
         const user = serverUser.user;
-        if (!user.intakeCode) continue;
+        if (!user.intakeCode || !user.dmNotifications) continue;
 
-        // Calculate next week's date range (Monday to Friday)
+        const member = await guild.members.fetch(user.userId).catch(() => null);
+        if (!member) continue;
+
         const today = new Date();
         const nextMonday = new Date(today);
-        nextMonday.setDate(today.getDate() + (8 - today.getDay())); // Next Monday (8 because we want next week)
+        nextMonday.setDate(today.getDate() + (8 - today.getDay()));
         nextMonday.setHours(0, 0, 0, 0);
 
         const nextFriday = new Date(nextMonday);
-        nextFriday.setDate(nextMonday.getDate() + 4); // Friday is 4 days after Monday
+        nextFriday.setDate(nextMonday.getDate() + 4);
         nextFriday.setHours(23, 59, 59, 999);
 
-        let classes = await timetable.getWeeklyByIntake(user.intakeCode, nextMonday, nextFriday);
+        let classes = await timetable.getWeeklyByIntake(
+          user.intakeCode,
+          nextMonday,
+          nextFriday
+        );
 
         // Filter by tutorial group if set
         if (user.grouping) {
-          classes = classes.filter(cls => cls.grouping === user.grouping.toUpperCase());
+          classes = classes.filter(
+            (cls) => cls.grouping === user.grouping.toUpperCase()
+          );
         }
 
         if (classes.length > 0) {
           const embed = new EmbedBuilder()
-            .setColor(0x0099FF)
-            .setTitle(`📅 Timetable for ${nextMonday.toLocaleDateString()} - ${nextFriday.toLocaleDateString()}`)
-            .setDescription(`Intake: ${user.intakeCode}${user.grouping ? ` (Group ${user.grouping})` : ''}`);
+            .setColor(0x0099ff)
+            .setTitle(`📅 Your Timetable for Next Week`)
+            .setDescription(
+              `${nextMonday.toLocaleDateString()} - ${nextFriday.toLocaleDateString()}\nIntake: ${
+                user.intakeCode
+              }${user.grouping ? ` (Group ${user.grouping})` : ""}`
+            );
 
           // Group classes by day
           const dayGroups = {};
-          classes.forEach(cls => {
-            const day = cls.startTime.toLocaleDateString('en-US', { weekday: 'long' });
+          classes.forEach((cls) => {
+            const day = cls.startTime.toLocaleDateString("en-US", {
+              weekday: "long",
+            });
             if (!dayGroups[day]) {
               dayGroups[day] = [];
             }
@@ -219,27 +307,46 @@ async function sendWeeklyTimetableUpdates(bot) {
           // Add fields for each day
           for (const [day, dayClasses] of Object.entries(dayGroups)) {
             dayClasses.sort((a, b) => a.startTime - b.startTime);
-            let value = dayClasses.map(cls => {
-              const startTime = cls.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-              const endTime = cls.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-              return `${cls.moduleCode} - ${cls.moduleName}\n🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`;
-            }).join('\n\n');
-            
+            let value = dayClasses
+              .map((cls) => {
+                const startTime = cls.startTime.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const endTime = cls.endTime.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                return `${cls.moduleCode} - ${
+                  cls.moduleName
+                }\n🕒 ${startTime} - ${endTime}\n${
+                  isPhysicalLocation(cls.roomNumber)
+                    ? `🏫 Room ${cls.roomNumber}`
+                    : "💻 Online Class"
+                }`;
+              })
+              .join("\n\n");
+
             embed.addFields({
               name: `📆 ${day}`,
-              value: value || 'No classes'
+              value: value || "No classes",
             });
           }
 
-          await channel.send({
-            content: `<@${user.userId}>, here's your timetable for next week:`,
-            embeds: [embed]
-          });
+          // Send as DM
+          await member
+            .send({ embeds: [embed] })
+            .catch((error) =>
+              console.error(
+                `Failed to send weekly DM to ${member.user.tag}:`,
+                error
+              )
+            );
         }
       }
     }
   } catch (error) {
-    console.error('Error sending weekly timetable updates:', error);
+    console.error("Error sending weekly timetable updates:", error);
   }
 }
 
