@@ -73,16 +73,12 @@ module.exports = {
           return;
         }
         case "daily": {
-          const response = await dailyCommand.execute(
+          return await dailyCommand.execute(
             interaction,
             api,
             intakeCode,
             grouping
           );
-          if (response) {
-            return await interaction.editReply(response);
-          }
-          return;
         }
         case "date": {
           const response = await dateCommand.execute(

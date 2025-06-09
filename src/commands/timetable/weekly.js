@@ -14,6 +14,28 @@ module.exports = {
     .setDescription("Get weekly timetable")
     .addStringOption((option) =>
       option
+        .setName("display_format")
+        .setDescription("Choose how detailed the timetable should be")
+        .setRequired(true)
+        .addChoices(
+          { name: "Time Only", value: "time" },
+          { name: "Time + Location", value: "time_loc" },
+          { name: "Time + Module Code + Location", value: "time_code_loc" },
+          { name: "Time + Module Name + Location", value: "time_name_loc" }
+        )
+    )
+    .addStringOption((option) =>
+      option
+        .setName("time_format")
+        .setDescription("Optional: Choose time format")
+        .setRequired(false)
+        .addChoices(
+          { name: "12-hour", value: "12" },
+          { name: "24-hour", value: "24" }
+        )
+    )
+    .addStringOption((option) =>
+      option
         .setName("intake_code")
         .setDescription("Optional: Override your saved intake code")
         .setRequired(false)
@@ -23,19 +45,13 @@ module.exports = {
         .setName("tutorial_group")
         .setDescription("Optional: Filter by tutorial group (e.g., G1, G2)")
         .setRequired(false)
-    )
-    .addStringOption((option) =>
-      option
-        .setName("sort_by")
-        .setDescription("Optional: Sort results by category")
-        .setRequired(false)
-        .addChoices(
-          { name: "By Day", value: "day" },
-          { name: "By Module", value: "module" }
-        )
     ),
 
   async execute(interaction, api, intakeCode, grouping) {
+    // Get display format preference
+    const displayFormat = interaction.options.getString("display_format");
+    const timeFormat = interaction.options.getString("time_format") || "24";
+
     let classes = await api.timetable.getWeeklyByIntake(intakeCode);
 
     if (grouping) {
@@ -56,7 +72,10 @@ module.exports = {
     const weekGroups = {};
     classes.forEach((cls) => {
       const weekStart = new Date(cls.startTime);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday
+      // Get to Monday by subtracting days until we reach Monday (1)
+      // getDay() returns 0 for Sunday, so we use (day - 1 + 7) % 7 to get days until Monday
+      const daysUntilMonday = (weekStart.getDay() - 1 + 7) % 7;
+      weekStart.setDate(weekStart.getDate() - daysUntilMonday);
       weekStart.setHours(0, 0, 0, 0);
       const weekKey = weekStart.toISOString();
 
@@ -73,23 +92,27 @@ module.exports = {
     const createWeekEmbed = (weekKey, weekIndex, totalWeeks) => {
       const weekClasses = weekGroups[weekKey];
       const weekStart = new Date(weekKey);
-
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
-        .setTitle("📅 Weekly Timetable")
-        .setDescription(
-          totalWeeks > 1
-            ? `Week ${weekIndex + 1} of ${totalWeeks}\nWeek: ${
-                weekStart.toISOString().split("T")[0]
-              }\nIntake: ${intakeCode}${
-                grouping ? ` (Group ${grouping})` : ""
-              }`
-            : `Week: ${
-                weekStart.toISOString().split("T")[0]
-              }\nIntake: ${intakeCode}${
-                grouping ? ` (Group ${grouping})` : ""
-              }`
-        );
+        .setTitle("📅 Weekly Timetable"); // Add header with intake and week info
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 4); // Friday is 4 days after Monday
+
+      const formatDate = (date) => {
+        return date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      };
+
+      embed.addFields({
+        name: `👥 ${intakeCode}${grouping ? ` (Group ${grouping})` : ""}`,
+        value: `${formatDate(weekStart)} - ${formatDate(weekEnd)}${
+          totalWeeks > 1 ? ` • Week ${weekIndex + 1}/${totalWeeks}` : ""
+        }`,
+        inline: true,
+      });
 
       // Group by day within the week
       const dayGroups = {};
@@ -97,9 +120,7 @@ module.exports = {
         const day = cls.startTime.toLocaleDateString("en-US", {
           weekday: "long",
         });
-        if (!dayGroups[day]) {
-          dayGroups[day] = [];
-        }
+        if (!dayGroups[day]) dayGroups[day] = [];
         dayGroups[day].push(cls);
       });
 
@@ -109,32 +130,47 @@ module.exports = {
           if (dayGroups[day]) {
             const dayClasses = dayGroups[day];
             dayClasses.sort((a, b) => a.startTime - b.startTime);
-            let value = dayClasses
+            const value = dayClasses
               .map((cls) => {
-                const startTime = cls.startTime.toLocaleTimeString(
-                  "en-US",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                );
-                const endTime = cls.endTime.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-                return `${cls.moduleCode} - ${
-                  cls.moduleName
-                }\n🕒 ${startTime} - ${endTime}\n${
-                  isPhysicalLocation(cls.roomNumber)
-                    ? `🏫 Room ${cls.roomNumber}`
-                    : "💻 Online Class"
-                }`;
+                const formatTime = (date) => {
+                  return date
+                    .toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: timeFormat === "12",
+                      timeZone: "Asia/Kuala_Lumpur",
+                    })
+                    .toLowerCase();
+                };
+                const startTime = formatTime(cls.startTime);
+                const endTime = formatTime(cls.endTime);
+                const time = `${startTime} - ${endTime}`;
+                const location = isPhysicalLocation(cls.roomNumber)
+                  ? `📍${cls.roomNumber}`
+                  : "💻";
+
+                switch (displayFormat) {
+                  case "time":
+                    return `\`${time}\``;
+                  case "time_loc":
+                    return `\`${time}\` ${location}`;
+                  case "time_name_loc":
+                    return `\`${time}\` • ${cls.moduleName} ${location}`;
+                  case "time_code_loc":
+                  default:
+                    return `\`${time}\` • ${cls.moduleCode} ${location}`;
+                }
               })
-              .join("\n\n");
+              .join("\n");
 
             embed.addFields({
-              name: `📆 ${day} (${dayClasses[0].startTime.toLocaleDateString()})`,
-              value: value || "No classes",
+              name: `${day}`,
+              value: value || "⚠️ No classes scheduled",
+            });
+          } else {
+            embed.addFields({
+              name: `${day}`,
+              value: "⚠️ No classes scheduled",
             });
           }
         }
@@ -189,8 +225,7 @@ module.exports = {
         if (i.customId === "next_week") {
           currentWeekIndex = (currentWeekIndex + 1) % totalWeeks;
         } else {
-          currentWeekIndex =
-            (currentWeekIndex - 1 + totalWeeks) % totalWeeks;
+          currentWeekIndex = (currentWeekIndex - 1 + totalWeeks) % totalWeeks;
         }
 
         const newEmbed = createWeekEmbed(

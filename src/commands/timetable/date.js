@@ -51,7 +51,7 @@ module.exports = {
     if (!classes.length) {
       return {
         content: grouping
-          ? `No classes found for tutorial group ${grouping}.`
+          ? `No classes scheduled for tutorial group ${grouping} for this period.`
           : "No classes scheduled for this period.",
       };
     }
