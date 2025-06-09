@@ -1,8 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const api = require("../api");
 const { getIntakeCodeByUserId, getGroupingByUserId } = require("../database");
-
-const { isPhysicalLocation } = require("../utils/helpers");
+// Import subcommands
 const dailyCommand = require("./timetable/daily");
 const todayCommand = require("./timetable/today");
 const weeklyCommand = require("./timetable/weekly");
