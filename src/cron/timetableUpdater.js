@@ -2,12 +2,7 @@ const cron = require('node-cron');
 const { EmbedBuilder } = require('discord.js');
 const { prisma } = require('../database');
 const { timetable } = require('../api');
-
-// Filter out online classes (not physical locations)
-const isPhysicalLocation = (room) => {
-  // Filter out all ONLMCO3 rooms (they are all online classes)
-  return !room.includes('ONLMCO3');
-};
+const { isPhysicalLocation } = require("../utils/helpers");
 
 /**
  * Initialize cron jobs for timetable updates and notifications
