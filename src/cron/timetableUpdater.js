@@ -3,6 +3,12 @@ const { EmbedBuilder } = require('discord.js');
 const { prisma } = require('../database');
 const { timetable } = require('../api');
 
+// Filter out online classes (not physical locations)
+const isPhysicalLocation = (room) => {
+  // Filter out all ONLMCO3 rooms (they are all online classes)
+  return !room.includes('ONLMCO3');
+};
+
 /**
  * Initialize cron jobs for timetable updates and notifications
  * @param {import('discord.js').Client} bot - The Discord.js client instance
@@ -72,13 +78,18 @@ async function sendTimetableUpdates(bot) {
         if (!user.intakeCode) continue;
 
         const today = new Date();
-        const classes = await timetable.getByIntake(user.intakeCode, today);
+        let classes = await timetable.getByIntake(user.intakeCode, today);
+
+        // Filter by tutorial group if set
+        if (user.grouping) {
+          classes = classes.filter(cls => cls.grouping === user.grouping.toUpperCase());
+        }
 
         if (classes.length > 0) {
           const embed = new EmbedBuilder()
             .setColor(0x0099FF)
             .setTitle(`📅 Today's Timetable (${today.toDateString()})`)
-            .setDescription(`Intake: ${user.intakeCode}`);
+            .setDescription(`Intake: ${user.intakeCode}${user.grouping ? ` (Group ${user.grouping})` : ''}`);
 
           // Sort classes by time
           classes.sort((a, b) => a.startTime - b.startTime);
@@ -87,7 +98,7 @@ async function sendTimetableUpdates(bot) {
             const endTime = cls.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             embed.addFields({
               name: `${cls.moduleCode} - ${cls.moduleName}`,
-              value: `🕒 ${startTime} - ${endTime}\n🏫 Room ${cls.roomNumber}`
+              value: `🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`
             });
           });
 
@@ -130,7 +141,8 @@ async function sendWeeklyTimetableUpdates(bot) {
       if (!channel) continue;
 
       // Send updates for each user in the server
-      for (const serverUser of server.user) {        const user = serverUser.user;
+      for (const serverUser of server.user) {
+        const user = serverUser.user;
         if (!user.intakeCode) continue;
 
         // Calculate next week's date range (Monday to Friday)
@@ -143,12 +155,18 @@ async function sendWeeklyTimetableUpdates(bot) {
         nextFriday.setDate(nextMonday.getDate() + 4); // Friday is 4 days after Monday
         nextFriday.setHours(23, 59, 59, 999);
 
-        const classes = await timetable.getWeeklyByIntake(user.intakeCode, nextMonday, nextFriday);
+        let classes = await timetable.getWeeklyByIntake(user.intakeCode, nextMonday, nextFriday);
 
-        if (classes.length > 0) {          const embed = new EmbedBuilder()
+        // Filter by tutorial group if set
+        if (user.grouping) {
+          classes = classes.filter(cls => cls.grouping === user.grouping.toUpperCase());
+        }
+
+        if (classes.length > 0) {
+          const embed = new EmbedBuilder()
             .setColor(0x0099FF)
             .setTitle(`📅 Timetable for ${nextMonday.toLocaleDateString()} - ${nextFriday.toLocaleDateString()}`)
-            .setDescription(`Intake: ${user.intakeCode}`);
+            .setDescription(`Intake: ${user.intakeCode}${user.grouping ? ` (Group ${user.grouping})` : ''}`);
 
           // Group classes by day
           const dayGroups = {};
@@ -166,7 +184,7 @@ async function sendWeeklyTimetableUpdates(bot) {
             let value = dayClasses.map(cls => {
               const startTime = cls.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
               const endTime = cls.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-              return `${cls.moduleCode} - ${cls.moduleName}\n🕒 ${startTime} - ${endTime}\n🏫 Room ${cls.roomNumber}`;
+              return `${cls.moduleCode} - ${cls.moduleName}\n🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`;
             }).join('\n\n');
             
             embed.addFields({
