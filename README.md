@@ -119,7 +119,7 @@ So why not build something that could ***make my life easier once and for all?**
   - `intake_code`: Set the intake code for future querying.
   - `tutorial_group`: Set the tutorial group for future querying.
   - `dm_notifications`: Set your preference for receiving notifications about daily and weekly timetables
-  
+
 - `/timetable` - View timetable information
   - `/timetable today [intake_code] [tutorial_group] [sort_by]` - Get today's timetable
     - `intake_code`: Optional overwriting for intake code querying.
@@ -157,6 +157,24 @@ So why not build something that could ***make my life easier once and for all?**
   - `/schedule channel <channel>` - Set channel for server announcements
   - `/schedule intake <intake_code>` - Set server-wide default intake
   - `/schedule disable` - Disable server-wide announcements
+
+### FAQ
+
+#### How do I search for specific rooms?
+- **Auditoriums**: You can search using any of these formats:
+  - `/timetable room Audi 1`
+  - `/timetable room Auditorium 1`
+  - `/timetable room Auditorium 1 @ Level 6`
+  All these will find the same room.
+
+- **Tech Labs**: Similarly flexible search:
+  - `/timetable room Tech Lab 4-03`
+  - `/timetable room TLab 4-03`
+
+- **Regular Rooms**: Use the standard format:
+  - `/timetable room B-06-12`
+
+The search is case-insensitive and smart enough to match rooms even with additional location information.
 
 ### Schedule Updates
 
