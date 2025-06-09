@@ -15,22 +15,25 @@ Stay up to date with your APU auto-scheduled timetable right in your Discord ser
 ## ⚙️ Features
 
 - **🔄 Personal Timetable Management**
-  - Remember your intake code for quick access
+  - Remember your intake code and tutorial group for quick access
   - View timetable by date, weekday, or module code
   - Automatic weekly and daily timetable updates
   - Smart filtering based on tutorial groups
+  - Personalized DM notifications for your schedule
+  - Clear distinction between online and physical classes
 
-- **🏢 Room Management**
-  - Find empty classrooms by room number
-  - Support for various room formats (standard rooms, auditoriums, tech labs)
-  - Paginated room listings with interactive navigation
-  - Room availability status updates
+- **📬 Smart Notifications**
+  - Choose between server-wide announcements and personal DMs
+  - Rate-limited notifications to prevent Discord API throttling
+  - Daily updates at 6:00 AM (Monday-Friday)
+  - Weekly schedule overview on Sunday at 8:00 PM
+  - Intelligent buffering between messages for reliability
 
 - **🤖 Bot Features**
   - Slash command support for easy interaction
-  - Interactive button navigation
-  - Automatic schedule updates
   - Smart error handling and user feedback
+  - Efficient rate limiting for reliable operation
+  - Embedded message formatting for better readability
 
 ## 🤔 Why Create This Bot?
 
@@ -101,21 +104,32 @@ So why not build something that could ***make my life easier once and for all?**
 
 ### Basic Commands
 
-- `/setintake <intake_code>` - Set your intake code
-- `/timetable [date]` - View timetable for a specific date
-- `/schedule [day]` - View schedule for a specific day
-
-### Room Management
-
-- `/room find <room_number>` - Find availability of a specific room
-- `/room list [floor]` - List all empty rooms (optionally filter by floor)
+- `/setintake <intake_code> <tutorial_group> [dm_notifications]` - Set your intake code, tutorial group, and DM preferences
+- `/timetable` - View timetable information
+  - `/timetable today [intake_code] [tutorial_group] [sort_by]` - Get today's timetable
+  - `/timetable weekly [intake_code] [tutorial_group] [sort_by]` - Get weekly timetable
+  - `/timetable daily <weekday> [intake_code] [tutorial_group] [sort_by]` - Get timetable for a specific weekday
+  - `/timetable date <date> [intake_code] [tutorial_group] [sort_by]` - Get timetable for a specific date
+  - `/timetable empty-rooms [start_time] [end_time] [date]` - Find empty rooms
+  - `/timetable room <room_number> [date]` - Get schedule for a specific room
+- `/schedule` - Configure server-wide timetable settings
+  - `/schedule channel <channel>` - Set channel for server announcements
+  - `/schedule intake <intake_code>` - Set server-wide default intake
+  - `/schedule disable` - Disable server-wide announcements
 
 ### Schedule Updates
 
-The bot can automatically send:
-- Daily schedule updates (morning)
-- Weekly schedule updates (weekend)
+The bot automatically sends:
+- Daily schedule updates (6:00 AM, Monday-Friday)
+- Weekly schedule overview (8:00 PM, Sunday)
 - Immediate updates for schedule changes
+
+#### Notification Features
+- Server-wide announcements in designated channels
+- Personal DM notifications (opt-in)
+- Rate-limited message delivery to prevent Discord throttling
+- Clear distinction between online and physical classes
+- Tutorial group specific filtering
 
 ## 💝 Support
 
