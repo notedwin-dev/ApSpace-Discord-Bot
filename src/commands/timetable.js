@@ -224,16 +224,321 @@ async function execute(interaction) {
         embed.setTitle(`📅 Today's Timetable (${date.toDateString()})`);
         break;
       }
-
       case "weekly": {
+        // Get all scheduled classes
         classes = await api.timetable.getWeeklyByIntake(intakeCode);
-        embed.setTitle("📅 Weekly Timetable");
-        break;
-      }
 
+        if (grouping) {
+          classes = classes.filter(
+            (cls) => cls.grouping === grouping.toUpperCase()
+          );
+        }
+
+        if (!classes.length) {
+          return await interaction.editReply(
+            grouping
+              ? `No classes found for tutorial group ${grouping}.`
+              : "No classes scheduled for this period."
+          );
+        }
+
+        // Group classes by week, ensuring weeks with no classes are excluded
+        const weekGroups = {};
+        classes.forEach((cls) => {
+          const weekStart = new Date(cls.startTime);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday
+          weekStart.setHours(0, 0, 0, 0);
+          const weekKey = weekStart.toISOString();
+
+          if (!weekGroups[weekKey]) {
+            weekGroups[weekKey] = [];
+          }
+          weekGroups[weekKey].push(cls);
+        });
+
+        const weeks = Object.keys(weekGroups).sort();
+        const totalWeeks = weeks.length;
+
+        // Function to create embed for a specific week
+        const createWeekEmbed = (weekKey, weekIndex, totalWeeks) => {
+          const weekClasses = weekGroups[weekKey];
+          const weekStart = new Date(weekKey);
+
+          const embed = new EmbedBuilder()
+            .setColor(0x0099ff)
+            .setTitle("📅 Weekly Timetable")
+            .setDescription(
+              totalWeeks > 1
+                ? `Week ${weekIndex + 1} of ${totalWeeks}\nWeek: ${
+                    weekStart.toISOString().split("T")[0]
+                  }\nIntake: ${intakeCode}${
+                    grouping ? ` (Group ${grouping})` : ""
+                  }`
+                : `Week: ${
+                    weekStart.toISOString().split("T")[0]
+                  }\nIntake: ${intakeCode}${
+                    grouping ? ` (Group ${grouping})` : ""
+                  }`
+            );
+
+          // Group by day within the week
+          const dayGroups = {};
+          weekClasses.forEach((cls) => {
+            const day = cls.startTime.toLocaleDateString("en-US", {
+              weekday: "long",
+            });
+            if (!dayGroups[day]) {
+              dayGroups[day] = [];
+            }
+            dayGroups[day].push(cls);
+          });
+
+          // Add fields for each day in correct order
+          ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].forEach(
+            (day) => {
+              if (dayGroups[day]) {
+                const dayClasses = dayGroups[day];
+                dayClasses.sort((a, b) => a.startTime - b.startTime);
+                let value = dayClasses
+                  .map((cls) => {
+                    const startTime = cls.startTime.toLocaleTimeString(
+                      "en-US",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    );
+                    const endTime = cls.endTime.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    return `${cls.moduleCode} - ${
+                      cls.moduleName
+                    }\n🕒 ${startTime} - ${endTime}\n${
+                      isPhysicalLocation(cls.roomNumber)
+                        ? `🏫 Room ${cls.roomNumber}`
+                        : "💻 Online Class"
+                    }`;
+                  })
+                  .join("\n\n");
+
+                embed.addFields({
+                  name: `📆 ${day} (${dayClasses[0].startTime.toLocaleDateString()})`,
+                  value: value || "No classes",
+                });
+              }
+            }
+          );
+
+          if (totalWeeks > 1) {
+            embed.setFooter({
+              text: `Use buttons to navigate between weeks • ${totalWeeks} weeks total`,
+            });
+          }
+
+          return embed;
+        };
+
+        if (totalWeeks > 1) {
+          let currentWeekIndex = 0;
+          // Create initial embed and buttons
+          const embed = createWeekEmbed(weeks[0], 0, totalWeeks);
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId("prev_week")
+              .setLabel("Previous Week")
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji("⬅️"),
+            new ButtonBuilder()
+              .setCustomId("next_week")
+              .setLabel("Next Week")
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji("➡️")
+          );
+
+          const response = await interaction.editReply({
+            embeds: [embed],
+            components: [row],
+          });
+
+          // Create button collector
+          const collector = response.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: 900000, // 15 minutes
+          });
+
+          collector.on("collect", async (i) => {
+            if (i.user.id !== interaction.user.id) {
+              await i.reply({
+                content: "These buttons aren't for you!",
+                ephemeral: true,
+              });
+              return;
+            }
+
+            if (i.customId === "next_week") {
+              currentWeekIndex = (currentWeekIndex + 1) % totalWeeks;
+            } else {
+              currentWeekIndex =
+                (currentWeekIndex - 1 + totalWeeks) % totalWeeks;
+            }
+
+            const newEmbed = createWeekEmbed(
+              weeks[currentWeekIndex],
+              currentWeekIndex,
+              totalWeeks
+            );
+            await i.update({ embeds: [newEmbed] });
+          });
+
+          collector.on("end", () => {
+            row.components.forEach((button) => button.setDisabled(true));
+            interaction.editReply({ components: [row] }).catch(console.error);
+          });
+        } else {
+          // Single week display
+          const embed = createWeekEmbed(weeks[0], 0, totalWeeks);
+          await interaction.editReply({ embeds: [embed] });
+        }
+        return;
+      }
       case "daily": {
         const weekday = interaction.options.getString("weekday");
         classes = await api.timetable.getDailyByIntake(intakeCode, weekday);
+
+        // Apply tutorial group filter first
+        if (grouping) {
+          classes = classes.filter(
+            (cls) => cls.grouping === grouping.toUpperCase()
+          );
+        }
+
+        if (!classes.length) {
+          return await interaction.editReply(
+            grouping
+              ? `No classes found for tutorial group ${grouping}.`
+              : "No classes scheduled for this period."
+          );
+        }
+
+        // Group classes by date for pagination
+        const dateGroups = {};
+        classes.forEach((cls) => {
+          const dateKey = cls.startTime.toDateString();
+          if (!dateGroups[dateKey]) {
+            dateGroups[dateKey] = [];
+          }
+          dateGroups[dateKey].push(cls);
+        });
+
+        const dates = Object.keys(dateGroups).sort();
+        const totalDates = dates.length;
+
+        if (totalDates > 1) {
+          // Create pagination for multiple dates
+          let currentDateIndex = 0;
+          const createDateEmbed = (dateIndex) => {
+            const dateKey = dates[dateIndex];
+            const dateClasses = dateGroups[dateKey];
+            const displayDate = new Date(dateKey);
+
+            const dateEmbed = new EmbedBuilder()
+              .setColor(0x0099ff)
+              .setTitle(
+                `📅 ${
+                  weekday.charAt(0).toUpperCase() + weekday.slice(1)
+                } Timetable`
+              )
+              .setDescription(
+                `Date ${
+                  dateIndex + 1
+                } of ${totalDates}\n${displayDate.toLocaleDateString()}\nIntake: ${intakeCode}${
+                  grouping ? ` (Group ${grouping})` : ""
+                }`
+              )
+              .setFooter({
+                text: `Use buttons to navigate between dates • ${totalDates} dates total`,
+              });
+
+            // Sort classes by time
+            dateClasses.sort((a, b) => a.startTime - b.startTime);
+            dateClasses.forEach((cls) => {
+              const startTime = cls.startTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              const endTime = cls.endTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              dateEmbed.addFields({
+                name: `${cls.moduleCode} - ${cls.moduleName}`,
+                value: `🕒 ${startTime} - ${endTime}\n${
+                  isPhysicalLocation(cls.roomNumber)
+                    ? `🏫 Room ${cls.roomNumber}`
+                    : "💻 Online Class"
+                }`,
+              });
+            });
+
+            return dateEmbed;
+          };
+
+          // Create initial embed and buttons
+          const embed = createDateEmbed(0);
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId("prev_date")
+              .setLabel("Previous Date")
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji("⬅️"),
+            new ButtonBuilder()
+              .setCustomId("next_date")
+              .setLabel("Next Date")
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji("➡️")
+          );
+
+          const response = await interaction.editReply({
+            embeds: [embed],
+            components: [row],
+          });
+
+          // Create button collector
+          const collector = response.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: 900000, // 15 minutes
+          });
+
+          collector.on("collect", async (i) => {
+            if (i.user.id !== interaction.user.id) {
+              await i.reply({
+                content: "These buttons aren't for you!",
+                ephemeral: true,
+              });
+              return;
+            }
+
+            if (i.customId === "next_date") {
+              currentDateIndex = (currentDateIndex + 1) % totalDates;
+            } else {
+              currentDateIndex =
+                (currentDateIndex - 1 + totalDates) % totalDates;
+            }
+
+            const newEmbed = createDateEmbed(currentDateIndex);
+            await i.update({ embeds: [newEmbed] });
+          });
+
+          collector.on("end", () => {
+            row.components.forEach((button) => button.setDisabled(true));
+            interaction.editReply({ components: [row] }).catch(console.error);
+          });
+
+          return;
+        }
+
+        // If only one date, proceed with normal display
         embed.setTitle(
           `📅 Timetable for ${
             weekday.charAt(0).toUpperCase() + weekday.slice(1)
@@ -277,10 +582,9 @@ async function execute(interaction) {
         const startTime = new Date(date.setHours(startHours, startMinutes, 0));
         const endTime = new Date(date.setHours(endHours, endMinutes, 0));
 
-        const emptyRooms = (await api.timetable.getEmptyRooms(date, [
-          startTime,
-          endTime,
-        ])).filter(isPhysicalLocation);
+        const emptyRooms = (
+          await api.timetable.getEmptyRooms(date, [startTime, endTime])
+        ).filter(isPhysicalLocation);
 
         if (emptyRooms.length === 0) {
           embed
@@ -543,8 +847,9 @@ async function execute(interaction) {
         `Intake: ${intakeCode}${grouping ? ` (Group ${grouping})` : ""}`
       );
     }
-    // Sort classes based on sort_by option
-    if (sortBy) {
+
+    // Handle sorting for non-paginated views
+    if (sortBy && !["weekly", "daily"].includes(subcommand)) {
       switch (sortBy) {
         case "time":
           classes.sort((a, b) => a.startTime - b.startTime);
@@ -559,7 +864,11 @@ async function execute(interaction) {
             });
             embed.addFields({
               name: `${cls.moduleCode} - ${cls.moduleName}`,
-              value: `🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`,
+              value: `🕒 ${startTime} - ${endTime}\n${
+                isPhysicalLocation(cls.roomNumber)
+                  ? `🏫 Room ${cls.roomNumber}`
+                  : "💻 Online Class"
+              }`,
             });
           });
           break;
@@ -590,7 +899,11 @@ async function execute(interaction) {
                 const day = cls.startTime.toLocaleDateString("en-US", {
                   weekday: "long",
                 });
-                return `${day}: 🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`;
+                return `${day}: 🕒 ${startTime} - ${endTime}\n${
+                  isPhysicalLocation(cls.roomNumber)
+                    ? `🏫 Room ${cls.roomNumber}`
+                    : "💻 Online Class"
+                }`;
               })
               .join("\n");
 
@@ -625,7 +938,13 @@ async function execute(interaction) {
                   hour: "2-digit",
                   minute: "2-digit",
                 });
-                return `${cls.moduleCode} - ${cls.moduleName}\n🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`;
+                return `${cls.moduleCode} - ${
+                  cls.moduleName
+                }\n🕒 ${startTime} - ${endTime}\n${
+                  isPhysicalLocation(cls.roomNumber)
+                    ? `🏫 Room ${cls.roomNumber}`
+                    : "💻 Online Class"
+                }`;
               })
               .join("\n\n");
 
@@ -636,8 +955,8 @@ async function execute(interaction) {
           }
           break;
       }
-    } else {
-      // Default sorting by time
+    } else if (!["weekly", "daily"].includes(subcommand)) {
+      // Default sort by time for non-paginated views
       classes.sort((a, b) => a.startTime - b.startTime);
       classes.forEach((cls) => {
         const startTime = cls.startTime.toLocaleTimeString("en-US", {
@@ -650,7 +969,11 @@ async function execute(interaction) {
         });
         embed.addFields({
           name: `${cls.moduleCode} - ${cls.moduleName}`,
-          value: `🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`,
+          value: `🕒 ${startTime} - ${endTime}\n${
+            isPhysicalLocation(cls.roomNumber)
+              ? `🏫 Room ${cls.roomNumber}`
+              : "💻 Online Class"
+          }`,
         });
       });
     }
