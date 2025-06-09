@@ -2,7 +2,10 @@ const {
   SlashCommandSubcommandBuilder,
   EmbedBuilder,
 } = require("discord.js");
-const { isPhysicalLocation } = require("../../utils/helpers");
+const {
+  isPhysicalLocation,
+  normalizeRoomName,
+} = require("../../utils/helpers");
 
 module.exports = {
   data: new SlashCommandSubcommandBuilder()
@@ -11,7 +14,7 @@ module.exports = {
     .addStringOption((option) =>
       option
         .setName("room_number")
-        .setDescription("Room number (e.g. B-06-12)")
+        .setDescription("Room number (e.g. Audi 1, B-06-12)")
         .setRequired(true)
     )
     .addStringOption((option) =>
@@ -22,11 +25,13 @@ module.exports = {
     ),
 
   async execute(interaction, api) {
-    const roomNumber = interaction.options.getString("room_number");
+    let roomNumber = interaction.options.getString("room_number");
     const date = interaction.options.getString("date")
       ? new Date(interaction.options.getString("date"))
       : new Date();
-    
+
+    // Normalize the room number for consistent searching
+    roomNumber = normalizeRoomName(roomNumber);
     const classes = await api.timetable.getRoomSchedule(roomNumber, date);
 
     if (!classes.length) {

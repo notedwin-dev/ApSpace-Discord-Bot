@@ -6,7 +6,10 @@ const {
   ButtonStyle,
   ComponentType,
 } = require("discord.js");
-const { isPhysicalLocation } = require("../../utils/helpers");
+const {
+  isPhysicalLocation,
+  normalizeRoomName,
+} = require("../../utils/helpers");
 
 module.exports = {
   data: new SlashCommandSubcommandBuilder()
@@ -76,28 +79,35 @@ module.exports = {
         )
         .setDescription("No empty rooms found for this time slot.");
       return { embeds: [embed] };
-    }
-
-    // Group rooms by building and floor
+    } // Group rooms by building and floor
     const groupedRooms = {};
     emptyRooms.forEach((room) => {
       let key;
       let displayName;
-      if (room.toLowerCase().includes("auditorium")) {
-        // Handle auditorium format: "Auditorium 3 @ Level 3"
-        const match = room.match(/Auditorium (\d+) @ Level (\d+)/i);
+      const normalizedRoom = normalizeRoomName(room);
+
+      if (normalizedRoom.startsWith("audi")) {
+        // Handle auditorium format
+        const match = room.match(
+          /(?:Auditorium|Audi)\s*(\d+)(?:\s*@\s*Level\s*(\d+))?/i
+        );
         if (match) {
-          key = `AUD-${match[2]}`; // AUD-3 for level 3
-          displayName = `Auditorium ${match[1]}`;
+          const [, audiNum, level] = match;
+          key = level ? `AUD-${level}` : "AUD";
+          displayName = `Auditorium ${audiNum}`;
         } else {
           key = "AUD-Other";
           displayName = room;
         }
-      } else if (room.toLowerCase().includes("tech lab")) {
-        // Handle Tech Lab format: "Tech Lab 4-03"
-        const match = room.match(/Tech Lab (\d+)-(\d+)/i);
+      } else if (
+        room.toLowerCase().includes("tech lab") ||
+        room.toLowerCase().includes("tlab")
+      ) {
+        // Handle Tech Lab format: "Tech Lab 4-03" or "TLab 4-03"
+        const match = room.match(/(?:Tech\s*Lab|TLab)\s*(\d+)-(\d+)/i);
         if (match) {
-          key = `TLAB-${match[1]}`; // TLAB-4 for level 4
+          const [, level] = match;
+          key = `TLAB-${level}`;
           displayName = room;
         } else {
           key = "LAB-Other";
@@ -134,18 +144,16 @@ module.exports = {
     });
 
     // Sort groups: Auditoriums first, then blocks by name, then others
-    const sortedGroups = Object.entries(groupedRooms).sort(
-      ([keyA], [keyB]) => {
-        // Auditoriums come first
-        if (keyA.startsWith("AUD") && !keyB.startsWith("AUD")) return -1;
-        if (!keyA.startsWith("AUD") && keyB.startsWith("AUD")) return 1;
-        // Other rooms go last
-        if (keyA === "Other") return 1;
-        if (keyB === "Other") return -1;
-        // Everything else sorts normally
-        return keyA.localeCompare(keyB);
-      }
-    );
+    const sortedGroups = Object.entries(groupedRooms).sort(([keyA], [keyB]) => {
+      // Auditoriums come first
+      if (keyA.startsWith("AUD") && !keyB.startsWith("AUD")) return -1;
+      if (!keyA.startsWith("AUD") && keyB.startsWith("AUD")) return 1;
+      // Other rooms go last
+      if (keyA === "Other") return 1;
+      if (keyB === "Other") return -1;
+      // Everything else sorts normally
+      return keyA.localeCompare(keyB);
+    });
 
     // Split into pages of 24 fields (leaving room for header)
     const fieldsPerPage = 24;
