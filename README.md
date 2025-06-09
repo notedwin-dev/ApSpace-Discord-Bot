@@ -63,7 +63,7 @@ So why not build something that could ***make my life easier once and for all?**
 1. **Prerequisites**
    ```bash
    Node.js ≥ v20.x
-   PostgreSQL
+   PostgreSQL Client
    ```
 
 2. **Installation**
