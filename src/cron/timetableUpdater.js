@@ -47,18 +47,12 @@ function initializeCronJobs(bot) {
 }
 
 /**
- * Send timetable updates to all configured channels
+ * Send timetable updates to users and server channels
  * @param {import('discord.js').Client} bot - The Discord.js client instance
  */
 async function sendTimetableUpdates(bot) {
   try {
-    // Get all servers with webhook channels configured
     const servers = await prisma.server.findMany({
-      where: {
-        webhookChannel: {
-          not: null
-        }
-      },
       include: {
         user: {
           include: {
@@ -69,13 +63,59 @@ async function sendTimetableUpdates(bot) {
     });
 
     for (const server of servers) {
-      const channel = bot.channels.cache.get(server.webhookChannel);
-      if (!channel) continue;
+      const guild = bot.guilds.cache.get(server.id);
+      if (!guild) continue;
 
-      // Send updates for each user in the server
+      // Handle server-wide announcements
+      if (server.webhookChannel && server.defaultIntake) {
+        const channel = bot.channels.cache.get(server.webhookChannel);
+        if (channel) {
+          const today = new Date();
+          const classes = await timetable.getByIntake(server.defaultIntake, today);
+
+          if (classes.length > 0) {
+            const embed = new EmbedBuilder()
+              .setColor(0x0099FF)
+              .setTitle(`📅 Today's Classes (${today.toDateString()})`)
+              .setDescription(`Server-wide timetable for intake: ${server.defaultIntake}`);
+
+            // Sort and group classes
+            classes.sort((a, b) => a.startTime - b.startTime);
+            const groupedClasses = {};
+            
+            classes.forEach(cls => {
+              if (!groupedClasses[cls.grouping]) {
+                groupedClasses[cls.grouping] = [];
+              }
+              groupedClasses[cls.grouping].push(cls);
+            });
+
+            // Add fields for each tutorial group
+            for (const [group, groupClasses] of Object.entries(groupedClasses)) {
+              let value = groupClasses.map(cls => {
+                const startTime = cls.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const endTime = cls.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                return `${cls.moduleCode} - ${cls.moduleName}\n🕒 ${startTime} - ${endTime}\n${isPhysicalLocation(cls.roomNumber) ? `🏫 Room ${cls.roomNumber}` : '💻 Online Class'}`;
+              }).join('\n\n');
+
+              embed.addFields({
+                name: `Group ${group || 'Common'}`,
+                value: value
+              });
+            }
+
+            await channel.send({ embeds: [embed] });
+          }
+        }
+      }
+
+      // Handle personal timetables via DM
       for (const serverUser of server.user) {
         const user = serverUser.user;
         if (!user.intakeCode) continue;
+
+        const member = await guild.members.fetch(user.userId).catch(() => null);
+        if (!member) continue;
 
         const today = new Date();
         let classes = await timetable.getByIntake(user.intakeCode, today);
@@ -88,10 +128,9 @@ async function sendTimetableUpdates(bot) {
         if (classes.length > 0) {
           const embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setTitle(`📅 Today's Timetable (${today.toDateString()})`)
+            .setTitle(`📅 Your Timetable for ${today.toDateString()}`)
             .setDescription(`Intake: ${user.intakeCode}${user.grouping ? ` (Group ${user.grouping})` : ''}`);
 
-          // Sort classes by time
           classes.sort((a, b) => a.startTime - b.startTime);
           classes.forEach(cls => {
             const startTime = cls.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -102,10 +141,9 @@ async function sendTimetableUpdates(bot) {
             });
           });
 
-          await channel.send({ 
-            content: `<@${user.userId}>, here's your timetable for today:`,
-            embeds: [embed] 
-          });
+          // Send as DM
+          await member.send({ embeds: [embed] }).catch(error => 
+            console.error(`Failed to send DM to ${member.user.tag}:`, error));
         }
       }
     }
