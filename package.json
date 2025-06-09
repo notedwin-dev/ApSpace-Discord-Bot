@@ -1,0 +1,35 @@
+{
+  "name": "apspace-discord-bot",
+  "version": "1.0.0",
+  "description": "Stay up to date with your APU auto-scheduled timetable when you are chilling in your Discord server!",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "prisma": {
+    "schema": "src/prisma/schema.prisma"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/notedwin-dev/ApSpace-Discord-Bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/notedwin-dev/ApSpace-Discord-Bot/issues"
+  },
+  "homepage": "https://github.com/notedwin-dev/ApSpace-Discord-Bot#readme",
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "axios": "^1.9.0",
+    "date-fns": "^4.1.0",
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0",
+    "node-cron": "^4.1.0",
+    "prisma": "^6.9.0"
+  }
+}
