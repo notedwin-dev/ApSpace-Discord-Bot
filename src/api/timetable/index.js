@@ -74,9 +74,17 @@ async function fetchAndCacheTimetable() {
       },
       select: { id: true },
     });
-
     if (oldTimetables.length > 0) {
       console.log(`Cleaning up ${oldTimetables.length} expired timetable(s)`);
+      // First delete all associated class schedules
+      await prisma.classSchedule.deleteMany({
+        where: {
+          timetableId: {
+            in: oldTimetables.map((t) => t.id),
+          },
+        },
+      });
+      // Then delete the timetable entries
       await prisma.timetable.deleteMany({
         where: {
           id: {
