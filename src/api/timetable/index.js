@@ -411,22 +411,44 @@ async function getRoomSchedule(roomNumber, date) {
       await fetchAndCacheTimetable();
       return getRoomSchedule(roomNumber, date); // Retry with new data
     } // Get classes for the specific room and date
-    const normalizedRoomNumber = normalizeRoomName(roomNumber);
+    const normalizedRoomNumber = normalizeRoomName(roomNumber).toLowerCase();
+    console.log(
+      `Searching for room: "${roomNumber}" (normalized: "${normalizedRoomNumber}")`
+    );
+
+    // Get all matching rooms first to debug
+    const allRooms = await prisma.classSchedule.findMany({
+      where: {
+        timetableId: latestTimetable.id,
+      },
+      select: {
+        roomNumber: true,
+      },
+      distinct: ["roomNumber"],
+    });
+    console.log(
+      "Available rooms:",
+      allRooms
+        .map((r) => r.roomNumber)
+        .filter((r) => r.toLowerCase().includes(normalizedRoomNumber))
+    );
     const classes = await prisma.classSchedule.findMany({
       where: {
         timetableId: latestTimetable.id,
-        OR: [
-          // Match normalized room names
-          { roomNumber: { equals: normalizedRoomNumber, mode: "insensitive" } },
-          // Match original format (for backwards compatibility)
+        AND: [
           {
-            roomNumber: { contains: normalizedRoomNumber, mode: "insensitive" },
+            roomNumber: {
+              contains: normalizedRoomNumber,
+              mode: "insensitive",
+            },
+          },
+          {
+            startTime: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
           },
         ],
-        startTime: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
       },
       orderBy: {
         startTime: "asc",
