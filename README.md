@@ -104,9 +104,6 @@ So why not build something that could ***make my life easier once and for all?**
 
 4. **Starting the Bot**
    ```bash
-   # Deploy slash commands
-   npm run deploy-commands
-
    # Start the bot
    npm start
    ```
