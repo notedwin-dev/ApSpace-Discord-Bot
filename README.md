@@ -118,34 +118,41 @@ So why not build something that could ***make my life easier once and for all?**
   - `dm_notifications`: Set your preference for receiving notifications about daily and weekly timetables
 
 - `/timetable` - View timetable information
+  
+  ![Screenshot of the timetable today command showing today's class schedule](public/screenshots/timetable-today-command.png)
   - `/timetable today [intake_code] [tutorial_group] [sort_by]` - Get today's timetable
     - `intake_code`: Optional overwriting for intake code querying.
     - `tutorial_group`: Optional overwriting for tutorial group querying.
     - `sort_by`: Optional overwriting for sorting filters.
-
+  
+  ![Screenshot of the timetable weekly command showing a week's worth of classes](public/screenshots/timetable-weekly-command.png)
   - `/timetable weekly <display_format> [time_format] [intake_code] [tutorial_group]` - Get weekly timetable
     - `display_format`: Time Only, Time + Location, Time + Module Code + Location, Time + Module Name + Location
     - `time_format`: 12-hour or 24-hour time format
     - `intake_code`: Optional overwriting for intake code querying.
     - `tutorial_group`: Optional overwriting for tutorial group querying.
-
+  
+  ![Screenshot of the timetable daily command showing classes for a specific weekday](public/screenshots/timetable-daily-command.png)
   - `/timetable daily <weekday> [intake_code] [tutorial_group] [sort_by]` - Get timetable for a specific weekday
     - `weekday`: Specify the day of the week (e.g. Monday, Tuesday, Wednesday, Thursday, Friday...)
     - `intake_code`: Optional overwriting for intake code querying.
     - `tutorial_group`: Optional overwriting for tutorial group querying.
     - `sort_by`: Optional overwriting for sorting filters.
-    
+      
+  ![Screenshot of the timetable date command showing classes for a specific date](public/screenshots/timetable-date-command.png)
   - `/timetable date <date> [intake_code] [tutorial_group] [sort_by]` - Get timetable for a specific date
     - `date`: Specify a date in YYYY-MM-DD format (e.g. 2025-04-24)
     - `intake_code`: Optional overwriting for intake code querying.
     - `tutorial_group`: Optional overwriting for tutorial group querying.
     - `sort_by`: Optional overwriting for sorting filters.
-
+  
+  ![Screenshot of the empty rooms finder showing available classrooms for a specific time slot](public/screenshots/timetable-empty-rooms-command.png)
   - `/timetable empty-rooms [start_time] [end_time] [date]` - Find empty rooms (Classroom finder)
     - `start_time`: Optionally specify the start time you want to use the empty room. (defaults to current time)
     - `end_time`: Optionally specify the end time when you are ready to let go of the empty room. (defaults to 1 hour after current time)
     - `date`: Optionally specify the date (defaults to current date)
 
+  ![Screenshot of specific room's schedule of the day](public/screenshots/timetable-room-command.png)
   - `/timetable room <room_number> [date]` - Get schedule for a specific room
     - `room_number`: Specify the room number (e.g. S-08-02)
     - `date`: Optionally find the schedule of the specific room by date
