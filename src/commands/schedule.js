@@ -1,9 +1,14 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ApplicationIntegrationType,
+} = require("discord.js");
 const { prisma } = require("../database");
 
 const command = new SlashCommandBuilder()
   .setName("schedule")
   .setDescription("Configure timetable update settings")
+  .setIntegrationTypes([ApplicationIntegrationType.GuildInstall])
   .setDefaultMemberPermissions(
     PermissionFlagsBits.Administrator,
     PermissionFlagsBits.ModerateMembers
