@@ -7,6 +7,17 @@ const {
   normalizeRoomName,
 } = require("../../utils/helpers");
 
+// Function to capitalize room name for display
+function capitalizeRoomName(roomName) {
+  return roomName
+    .split(" ")
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    )
+    .join(" ");
+}
+
 module.exports = {
   data: new SlashCommandSubcommandBuilder()
     .setName("room")
@@ -71,7 +82,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
         .setTitle(
-          `📅 Schedule for Room ${roomNumber} on ${date.toDateString()}`
+          `📅 Schedule for Room ${capitalizeRoomName(roomNumber)} on ${date.toDateString()}`
         )
         .setDescription(
           `All classes scheduled for this room${
