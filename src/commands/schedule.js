@@ -53,10 +53,10 @@ async function execute(interaction) {
         const channel = interaction.options.getChannel("channel");
 
         await prisma.server.upsert({
-          where: { id: serverId },
+          where: { serverId: serverId },
           update: { webhookChannel: channel.id },
           create: {
-            id: serverId,
+            serverId: serverId,
             name: interaction.guild.name,
             webhookChannel: channel.id,
           },
@@ -72,10 +72,10 @@ async function execute(interaction) {
         const intakeCode = interaction.options.getString("intake_code");
 
         await prisma.server.upsert({
-          where: { id: serverId },
+          where: { serverId: serverId },
           update: { defaultIntake: intakeCode },
           create: {
-            id: serverId,
+            serverId: serverId,
             name: interaction.guild.name,
             defaultIntake: intakeCode,
           },
@@ -89,7 +89,7 @@ async function execute(interaction) {
 
       case "disable": {
         await prisma.server.update({
-          where: { id: serverId },
+          where: { serverId: serverId },
           data: {
             webhookChannel: null,
             defaultIntake: null,
