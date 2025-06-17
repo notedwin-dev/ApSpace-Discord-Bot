@@ -57,7 +57,6 @@ async function execute(interaction) {
           update: { webhookChannel: channel.id },
           create: {
             serverId: serverId,
-            name: interaction.guild.name,
             webhookChannel: channel.id,
           },
         });
@@ -76,7 +75,6 @@ async function execute(interaction) {
           update: { defaultIntake: intakeCode },
           create: {
             serverId: serverId,
-            name: interaction.guild.name,
             defaultIntake: intakeCode,
           },
         });
