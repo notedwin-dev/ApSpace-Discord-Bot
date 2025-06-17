@@ -16,7 +16,7 @@ Stay up to date with your APU auto-scheduled timetable right in your Discord ser
 
 - **🔄 Personal Timetable Management**
   - Remember your intake code and tutorial group for quick access
-  - View timetable by date, weekday, or module code
+  - View timetable by date, weekday, or intake code
   - Multiple display formats for weekly schedule (time-only, with location, with module details)
   - 12-hour or 24-hour time format options
   - Smart pagination for multi-week schedules
