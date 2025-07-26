@@ -11,6 +11,7 @@ Stay up to date with your APU auto-scheduled timetable right in your Discord ser
 - [Setup Instructions](#-setup-instructions)
 - [Usage Guide](#-usage-guide)
 - [Support](#-support)
+- [Recent Updates](#recent-updates)
 
 ## ⚙️ Features
 
@@ -85,7 +86,7 @@ So why not build something that could ***make my life easier once and for all?**
 2. **Installation**
    ```bash
    # Clone the repository
-   git clone https://github.com/yourusername/ApSpace-Discord-Bot.git
+   git clone https://github.com/notedwin-dev/ApSpace-Discord-Bot.git
    cd ApSpace-Discord-Bot
 
    # Install dependencies
@@ -210,3 +211,9 @@ If you find this bot helpful, consider supporting the project:
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Recent Updates
+### July 27, 2025
+- **Feature**: Added autocomplete for the week option using the `fetchAllTimetable` function.
+- **Bug Fix**: Ensured group filtering is applied after fetching timetables by intake code.
+- **Enhancement**: Improved filtering logic to handle tutorial groups more effectively.
