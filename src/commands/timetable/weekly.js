@@ -81,7 +81,6 @@ module.exports = {
         console.log("Filtering by tutorial group:", grouping);
         const upperGrouping = grouping.toUpperCase();
         classes = classes.filter((cls) => {
-          console.log("Class grouping:", cls.grouping);
           return cls.grouping && cls.grouping.toUpperCase() === upperGrouping;
         });
       }
