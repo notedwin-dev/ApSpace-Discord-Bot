@@ -56,7 +56,12 @@ module.exports = {
             grouping
           );
           if (response) {
-            return await interaction.editReply(response);
+            if (typeof response === "string" || response.content) {
+              return await interaction.editReply(response);
+            } else {
+              console.error("Invalid response format for today command:", response);
+              return await interaction.editReply("An unexpected error occurred.");
+            }
           }
           return;
         }
@@ -68,7 +73,7 @@ module.exports = {
             grouping
           );
           if (response) {
-            return await interaction.editReply(response);
+            return;
           }
           return;
         }
@@ -88,7 +93,12 @@ module.exports = {
             grouping
           );
           if (response) {
-            return await interaction.editReply(response);
+            if (typeof response === "string" || response.content) {
+              return await interaction.editReply(response);
+            } else {
+              console.error("Invalid response format for date command:", response);
+              return await interaction.editReply("An unexpected error occurred.");
+            }
           }
           return;
         }
@@ -114,6 +124,31 @@ module.exports = {
       await interaction.editReply(
         "An error occurred while fetching the timetable."
       );
+    }
+  },
+
+  async autocomplete(interaction) {
+    try {
+      const subcommand = interaction.options.getSubcommand();
+      const userId = interaction.user.id;
+
+      const intakeCode = await getIntakeCodeByUserId(userId);
+      if (!intakeCode) {
+        return await interaction.respond([]); // No intake code, no suggestions
+      }
+
+      switch (subcommand) {
+        case "weekly": {
+          return await weeklyCommand.autocomplete(interaction, api, intakeCode);
+        }
+        // Add cases for other subcommands if needed
+        default: {
+          return await interaction.respond([]); // Default empty response
+        }
+      }
+    } catch (error) {
+      console.error("Error handling autocomplete for timetable command:", error);
+      await interaction.respond([]);
     }
   },
 };

@@ -470,6 +470,52 @@ async function getRoomSchedule(roomNumber, date) {
   }
 }
 
+/**
+ * Fetches all timetable data for a specific intake code.
+ * @param {string} intakeCode - The intake code to fetch the timetable for.
+ * @returns {Promise<Array>} - Array of all class schedules for the intake.
+ */
+async function fetchAllTimetable(intakeCode) {
+  try {
+    // Get the most recent valid timetable
+    const latestTimetable = await prisma.timetable.findFirst({
+      where: {
+        validUntil: {
+          gte: new Date(),
+        },
+      },
+      orderBy: {
+        fetchedAt: "desc",
+      },
+    });
+
+    if (!latestTimetable) {
+      await fetchAndCacheTimetable();
+      return fetchAllTimetable(intakeCode); // Retry with new data
+    }
+
+    // Get all classes for the specific intake
+    const classes = await prisma.classSchedule.findMany({
+      where: {
+        timetableId: latestTimetable.id,
+        intakeCode: intakeCode,
+      },
+      orderBy: {
+        startTime: "asc",
+      },
+    });
+
+    console.log(
+      `Fetched ${classes.length} classes for intake code "${intakeCode}"`
+    );
+
+    return classes;
+  } catch (error) {
+    console.error("Error fetching all timetable data:", error);
+    throw error;
+  }
+}
+
 module.exports = {
   getByIntake,
   getWeeklyByIntake,
@@ -477,5 +523,6 @@ module.exports = {
   getEmptyRooms,
   getRoomSchedule,
   fetchAndCacheTimetable,
+  fetchAllTimetable,
   prisma // Export prisma instance for testing
 };

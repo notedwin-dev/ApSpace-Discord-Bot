@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 const { initializeCronJobs } = require('./cron/timetableUpdater');
+const { fetchAndCacheTimetable } = require('./api/timetable');
 
 const bot = new Client({
   intents: [
@@ -55,5 +56,15 @@ for (const file of eventFiles) {
 
 // Initialize cron jobs
 initializeCronJobs(bot);
+
+(async () => {
+  try {
+    console.log('Fetching the latest schedule on bot startup...');
+    await fetchAndCacheTimetable();
+    console.log('Successfully fetched and cached the latest schedule.');
+  } catch (error) {
+    console.error('Error fetching the latest schedule on startup:', error);
+  }
+})();
 
 bot.login(process.env.BOT_TOKEN);
