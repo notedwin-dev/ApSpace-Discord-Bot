@@ -516,6 +516,21 @@ async function fetchAllTimetable(intakeCode) {
   }
 }
 
+async function isTimetableCacheExpired() {
+  // Check if a valid timetable exists in the database
+  const now = new Date();
+  const latestTimetable = await prisma.timetable.findFirst({
+    where: {
+      validUntil: {
+        gt: now
+      }
+    },
+    orderBy: { fetchedAt: 'desc' }
+  });
+  // If no valid timetable, cache is expired
+  return !latestTimetable;
+}
+
 module.exports = {
   getByIntake,
   getWeeklyByIntake,
@@ -524,5 +539,6 @@ module.exports = {
   getRoomSchedule,
   fetchAndCacheTimetable,
   fetchAllTimetable,
+  isTimetableCacheExpired,
   prisma // Export prisma instance for testing
 };

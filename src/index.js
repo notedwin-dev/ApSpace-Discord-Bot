@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 const { initializeCronJobs } = require('./cron/timetableUpdater');
-const { fetchAndCacheTimetable } = require('./api/timetable');
+const { fetchAndCacheTimetable, isTimetableCacheExpired } = require('./api/timetable');
 
 const bot = new Client({
   intents: [
@@ -57,13 +57,19 @@ for (const file of eventFiles) {
 // Initialize cron jobs
 initializeCronJobs(bot);
 
+
 (async () => {
   try {
-    console.log('Fetching the latest schedule on bot startup...');
-    await fetchAndCacheTimetable();
-    console.log('Successfully fetched and cached the latest schedule.');
+    const expired = await isTimetableCacheExpired();
+    if (expired) {
+      console.log('Timetable cache expired or missing. Fetching latest schedule on bot startup...');
+      await fetchAndCacheTimetable();
+      console.log('Successfully fetched and cached the latest schedule.');
+    } else {
+      console.log('Timetable cache is up to date. No fetch needed on startup.');
+    }
   } catch (error) {
-    console.error('Error fetching the latest schedule on startup:', error);
+    console.error('Error checking/fetching the latest schedule on startup:', error);
   }
 })();
 
