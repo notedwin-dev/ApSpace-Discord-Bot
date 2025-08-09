@@ -163,5 +163,31 @@ module.exports = {
       throw error;
     }
   },
+
+  async getExcludedModulesByUserId(userId) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { userId: userId },
+        select: { excludedModules: true },
+      });
+      return user ? (user.excludedModules || []) : [];
+    } catch (error) {
+      console.error("Error fetching excluded modules:", error);
+      throw error;
+    }
+  },
+
+  async setExcludedModulesByUserId(userId, excludedModules) {
+    try {
+      await prisma.user.upsert({
+        where: { userId: userId },
+        update: { excludedModules },
+        create: { userId: userId, excludedModules },
+      });
+    } catch (error) {
+      console.error("Error setting excluded modules:", error);
+      throw error;
+    }
+  },
   prisma: prisma,
 };
