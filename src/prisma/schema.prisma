@@ -13,6 +13,7 @@ model User {
   userId          String       @unique
   intakeCode      String?
   grouping        String?
+  excludedModules String[]     @default([])
   dmNotifications Boolean      @default(true)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
