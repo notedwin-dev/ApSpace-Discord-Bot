@@ -8,6 +8,7 @@ const weeklyCommand = require("./timetable/weekly");
 const dateCommand = require("./timetable/date");
 const emptyRoomsCommand = require("./timetable/empty-rooms");
 const roomCommand = require("./timetable/room");
+const manageModulesCommand = require("./timetable/manage-modules");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,7 +19,8 @@ module.exports = {
     .addSubcommand(dailyCommand.data)
     .addSubcommand(dateCommand.data)
     .addSubcommand(emptyRoomsCommand.data)
-    .addSubcommand(roomCommand.data),
+    .addSubcommand(roomCommand.data)
+    .addSubcommand(manageModulesCommand.data),
 
   async execute(interaction) {
     await interaction.deferReply();
@@ -44,7 +46,6 @@ module.exports = {
         }
       }
 
-      let classes = [];
       let embed = new EmbedBuilder().setColor(0x0099ff);
 
       switch (subcommand) {
@@ -116,7 +117,16 @@ module.exports = {
           }
           return;
         }
-      } // All subcommands now handle their own responses
+        case "manage-modules": {
+          const response = await manageModulesCommand.execute(
+            interaction,
+            api,
+            intakeCode,
+            grouping
+          );
+          return;
+        }
+      }
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

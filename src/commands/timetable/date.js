@@ -2,7 +2,8 @@ const {
   SlashCommandSubcommandBuilder,
   EmbedBuilder,
 } = require("discord.js");
-const { isPhysicalLocation } = require("../../utils/helpers");
+const { isPhysicalLocation, filterExcludedModules, displayRoomName } = require("../../utils/helpers");
+const { getExcludedModulesByUserId } = require("../../database");
 
 module.exports = {
   data: new SlashCommandSubcommandBuilder()
@@ -40,6 +41,10 @@ module.exports = {
   async execute(interaction, api, intakeCode, grouping) {
     const date = new Date(interaction.options.getString("date"));
     let classes = await api.timetable.getByIntake(intakeCode, date);
+
+    // Apply module exclusions
+    const excludedModules = await getExcludedModulesByUserId(interaction.user.id);
+    classes = filterExcludedModules(classes, excludedModules);
 
     // Apply tutorial group filter
     if (grouping) {
@@ -92,7 +97,7 @@ module.exports = {
             });
             return `${day}: 🕒 ${startTime} - ${endTime}\n${
               isPhysicalLocation(cls.roomNumber)
-                ? `🏫 Room ${cls.roomNumber}`
+              ? `🏫 Room ${displayRoomName(cls.roomNumber)}`
                 : "💻 Online Class"
             }`;
           })
@@ -119,7 +124,7 @@ module.exports = {
           name: `${cls.moduleCode} - ${cls.moduleName}`,
           value: `🕒 ${startTime} - ${endTime}\n${
             isPhysicalLocation(cls.roomNumber)
-              ? `🏫 Room ${cls.roomNumber}`
+            ? `🏫 Room ${displayRoomName(cls.roomNumber)}`
               : "💻 Online Class"
           }`,
         });

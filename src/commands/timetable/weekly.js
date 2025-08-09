@@ -7,7 +7,8 @@ const {
   StringSelectMenuBuilder,
   ComponentType,
 } = require("discord.js");
-const { isPhysicalLocation } = require("../../utils/helpers");
+const { isPhysicalLocation, filterExcludedModules, displayRoomName } = require("../../utils/helpers");
+const { getExcludedModulesByUserId } = require("../../database");
 
 module.exports = {
   data: new SlashCommandSubcommandBuilder()
@@ -46,6 +47,11 @@ module.exports = {
 
       // Fetch all timetable data
       let classes = await api.timetable.fetchAllTimetable(intakeCode);
+
+      // Apply module exclusions
+      const excludedModules = await getExcludedModulesByUserId(interaction.user.id);
+      classes = filterExcludedModules(classes, excludedModules);
+
       if (grouping) {
         const upperGrouping = grouping.toUpperCase();
         classes = classes.filter((cls) => cls.grouping && cls.grouping.toUpperCase() === upperGrouping);
@@ -258,7 +264,7 @@ async function createWeeklyTimetableEmbed(
             const endTime = formatTime(cls.endTime);
             const time = `${startTime} - ${endTime}`;
             const location = isPhysicalLocation(cls.roomNumber)
-              ? `📍${cls.roomNumber}`
+              ? `📍${displayRoomName(cls.roomNumber)}`
               : "💻";
             let line = "";
             switch (displayFormat) {
@@ -337,7 +343,7 @@ async function createWeeklyTimetableEmbed(
             const endTime = formatTime(cls.endTime);
             const time = `${startTime} - ${endTime}`;
             const location = isPhysicalLocation(cls.roomNumber)
-              ? `📍${cls.roomNumber}`
+              ? `📍${displayRoomName(cls.roomNumber)}`
               : "💻";
 
             switch (displayFormat) {

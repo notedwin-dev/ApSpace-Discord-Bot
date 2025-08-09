@@ -5,18 +5,8 @@ const {
 const {
   isPhysicalLocation,
   normalizeRoomName,
+  capitalizeRoomName,
 } = require("../../utils/helpers");
-
-// Function to capitalize room name for display
-function capitalizeRoomName(roomName) {
-  return roomName
-    .split(" ")
-    .map(
-      (word) =>
-        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    )
-    .join(" ");
-}
 
 module.exports = {
   data: new SlashCommandSubcommandBuilder()
@@ -36,6 +26,7 @@ module.exports = {
     ),
 
   async execute(interaction, api) {
+    const originalRoomNumber = interaction.options.getString("room_number");
     let roomNumber = interaction.options.getString("room_number");
     const date = interaction.options.getString("date")
       ? new Date(interaction.options.getString("date"))
@@ -82,7 +73,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x0099ff)
         .setTitle(
-          `📅 Schedule for Room ${capitalizeRoomName(roomNumber)} on ${date.toDateString()}`
+          `📅 Schedule for Room ${normalizeRoomName(originalRoomNumber)} on ${date.toDateString()}`
         )
         .setDescription(
           `All classes scheduled for this room${
