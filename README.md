@@ -11,7 +11,7 @@ Stay up to date with your APU auto-scheduled timetable right in your Discord ser
 - [Setup Instructions](#-setup-instructions)
 - [Usage Guide](#-usage-guide)
 - [Support](#-support)
-- [Recent Updates](#recent-updates)
+- [Changelog](#-changelog)
 
 ## ⚙️ Features
 
@@ -212,8 +212,13 @@ If you find this bot helpful, consider supporting the project:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Recent Updates
-### July 27, 2025
-- **Feature**: Added autocomplete for the week option using the `fetchAllTimetable` function.
-- **Bug Fix**: Ensured group filtering is applied after fetching timetables by intake code.
-- **Enhancement**: Improved filtering logic to handle tutorial groups more effectively.
+## 📋 Changelog
+
+For a detailed list of changes, new features, and bug fixes, see [CHANGELOG.md](CHANGELOG.md).
+
+### Latest Updates (v0.5.0 - August 9, 2025)
+- ✨ **New**: Module Management System - Hide unwanted elective modules from your timetable
+- 🎨 **Enhanced**: Improved room name formatting with proper capitalization
+- 🔧 **Technical**: Database schema updates and code organization improvements
+
+See the full [CHANGELOG.md](CHANGELOG.md) for complete release history.
